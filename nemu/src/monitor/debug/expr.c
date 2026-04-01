@@ -7,10 +7,17 @@
 #include <regex.h>
 
 enum {
-  TK_NOTYPE = 256, TK_EQ
-
+  TK_NOTYPE = 256,
+  TK_NUMBER,
+  TK_HEX,
+  TK_REG,
+  TK_EQ,
+  TK_NEQ,
+  TK_AND,
+  TK_OR,
+  TK_NEGATIVE,
+  TK_DEREF,
   /* TODO: Add more token types */
-
 };
 
 static struct rule {
@@ -22,9 +29,21 @@ static struct rule {
    * Pay attention to the precedence level of different rules.
    */
 
-  {" +", TK_NOTYPE},    // spaces
-  {"\\+", '+'},         // plus
-  {"==", TK_EQ}         // equal
+  {" +", TK_NOTYPE},  // spaces
+  {"0x[1-9A-Fa-f][0-9A-Fa-f]*", TK_HEX},
+  {"0|[1-9][0-9]*", TK_NUMBER},
+  {"\\$([eax|ecx|edx|ebx|esp|ebp|esi|edi|eip|ax|cx|dx|bx|sp|bp|si|di|al|cl|dl|bl|ah|ch|dh|bh])", TK_REG},
+  {"==", TK_EQ},
+  {"!=", TK_NEQ},
+  {"&&", TK_AND},
+  {"\\|\\|", TK_OR},
+  {"!", '!'},
+  {"\\+", '+'},      // plus
+  {"\\-", '-'},
+  {"\\*", '*'},
+  {"\\/", '/'},
+  {"\\(", '('},
+  {"\\)", ')'},
 };
 
 #define NR_REGEX (sizeof(rules) / sizeof(rules[0]) )
@@ -62,27 +81,47 @@ static bool make_token(char *e) {
   regmatch_t pmatch;
 
   nr_token = 0;
-
   while (e[position] != '\0') {
     /* Try all rules one by one. */
-    for (i = 0; i < NR_REGEX; i ++) {
+    for (i = 0; i < NR_REGEX; i++) {
       if (regexec(&re[i], e + position, 1, &pmatch, 0) == 0 && pmatch.rm_so == 0) {
         char *substr_start = e + position;
-        int substr_len = pmatch.rm_eo;
+        int substr_len = pmatch.rm_eo - pmatch.rm_so;
 
         Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s",
             i, rules[i].regex, position, substr_len, substr_len, substr_start);
+
         position += substr_len;
 
-        /* TODO: Now a new token is recognized with rules[i]. Add codes
-         * to record the token in the array `tokens'. For certain types
-         * of tokens, some extra actions should be performed.
-         */
+        if (substr_len >= (int)sizeof(tokens[nr_token].str))
+          assert(0);
 
-        switch (rules[i].token_type) {
-          default: TODO();
+        if (rules[i].token_type == TK_NOTYPE) {
+          /* skip whitespace */
+          break;
         }
 
+        tokens[nr_token].type = rules[i].token_type;
+
+        if (rules[i].token_type == TK_NUMBER) {
+          strncpy(tokens[nr_token].str, substr_start, substr_len);
+          tokens[nr_token].str[substr_len] = '\0';
+        }
+        else if (rules[i].token_type == TK_HEX) {
+          /* skip 0x */
+          strncpy(tokens[nr_token].str, substr_start + 2, substr_len - 2);
+          tokens[nr_token].str[substr_len - 2] = '\0';
+        }
+        else if (rules[i].token_type == TK_REG) {
+          /* skip $ */
+          strncpy(tokens[nr_token].str, substr_start + 1, substr_len - 1);
+          tokens[nr_token].str[substr_len - 1] = '\0';
+        }
+        else {
+          tokens[nr_token].str[0] = '\0';
+        }
+
+        nr_token++;
         break;
       }
     }
