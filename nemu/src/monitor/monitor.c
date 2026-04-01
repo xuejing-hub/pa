@@ -25,7 +25,7 @@ static inline void init_log() {
 #endif
 }
 
-static inline void welcome() {
+static inline void welcome() {//输出欢迎信息和 NEMU 的编译时间.
   printf("Welcome to NEMU!\n");
   Log("Build time: %s, %s", __TIME__, __DATE__);
   printf("For help, type \"help\"\n");
@@ -51,7 +51,7 @@ static inline int load_default_img() {
   return sizeof(img);
 }
 
-static inline void load_img() {
+static inline void load_img() {//读入带有客户程序的镜像文件.
   long size;
   if (img_file == NULL) {
     size = load_default_img();
@@ -79,7 +79,7 @@ static inline void load_img() {
 #endif
 }
 
-static inline void restart() {
+static inline void restart() {//模拟了"计算机启动"的功能,进行一些和"计算机启动"相关的初始化工作
   /* Set the initial instruction pointer. */
   cpu.eip = ENTRY_START;
 
