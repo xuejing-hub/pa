@@ -5,13 +5,9 @@
  */
 #include <sys/types.h>
 #include <regex.h>
-#include <stdlib.h>
 
 enum {
   TK_NOTYPE = 256, TK_EQ
-
-  /* number token */
-  , TK_NUM
 
   /* TODO: Add more token types */
 
@@ -22,17 +18,13 @@ static struct rule {
   int token_type;
 } rules[] = {
 
-  /* rules - order matters (more specific before general) */
+  /* TODO: Add more rules.
+   * Pay attention to the precedence level of different rules.
+   */
+
   {" +", TK_NOTYPE},    // spaces
-  {"0[xX][0-9a-fA-F]+", TK_NUM}, // hex number
-  {"[0-9]+", TK_NUM},             // decimal number
   {"\\+", '+'},         // plus
-  {"==", TK_EQ},          // equal
-  {"\\-", '-'},
-  {"\\*", '*'},
-  {"/", '/'},
-  {"\\(", '('},
-  {"\\)", ')'}
+  {"==", TK_EQ}         // equal
 };
 
 #define NR_REGEX (sizeof(rules) / sizeof(rules[0]) )
@@ -82,25 +74,13 @@ static bool make_token(char *e) {
             i, rules[i].regex, position, substr_len, substr_len, substr_start);
         position += substr_len;
 
+        /* TODO: Now a new token is recognized with rules[i]. Add codes
+         * to record the token in the array `tokens'. For certain types
+         * of tokens, some extra actions should be performed.
+         */
 
-        /* Now a new token is recognized with rules[i]. Record it. */
         switch (rules[i].token_type) {
-          case TK_NOTYPE:
-            /* skip spaces */
-            break;
-          case TK_NUM:
-            tokens[nr_token].type = TK_NUM;
-            if (substr_len >= (int)sizeof(tokens[nr_token].str))
-              substr_len = sizeof(tokens[nr_token].str) - 1;
-            strncpy(tokens[nr_token].str, substr_start, substr_len);
-            tokens[nr_token].str[substr_len] = '\0';
-            nr_token++;
-            break;
-          default:
-            tokens[nr_token].type = rules[i].token_type;
-            tokens[nr_token].str[0] = '\0';
-            nr_token++;
-            break;
+          default: TODO();
         }
 
         break;
@@ -122,33 +102,8 @@ uint32_t expr(char *e, bool *success) {
     return 0;
   }
 
-  if (nr_token == 0) {
-    *success = false;
-    return 0;
-  }
+  /* TODO: Insert codes to evaluate the expression. */
+  TODO();
 
-  /* Single number */
-  if (nr_token == 1 && tokens[0].type == TK_NUM) {
-    *success = true;
-    return (uint32_t)strtoul(tokens[0].str, NULL, 0);
-  }
-
-  /* Simple binary op: NUM op NUM */
-  if (nr_token == 3 && tokens[0].type == TK_NUM && tokens[2].type == TK_NUM) {
-    uint32_t a = (uint32_t)strtoul(tokens[0].str, NULL, 0);
-    uint32_t b = (uint32_t)strtoul(tokens[2].str, NULL, 0);
-    uint32_t res = 0;
-    switch (tokens[1].type) {
-      case '+': res = a + b; break;
-      case '-': res = a - b; break;
-      case '*': res = a * b; break;
-      case '/': res = b ? (a / b) : 0; break;
-      default: *success = false; return 0;
-    }
-    *success = true;
-    return res;
-  }
-
-  *success = false;
   return 0;
 }
