@@ -122,7 +122,10 @@ static bool make_token(char *e) {
           tokens[nr_token].str[0] = '\0';
         }
 
-        nr_token++;
+                /* print success record for debugging/tokenization tracing */
+                printf("Success record : nr token=%d,type=%d,str=%s\n", nr_token, tokens[nr_token].type, tokens[nr_token].str);
+
+                nr_token++;
         break;
       }
     }
