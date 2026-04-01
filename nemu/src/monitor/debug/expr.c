@@ -75,6 +75,7 @@ typedef struct token {
 
 Token tokens[32];
 int nr_token;
+static bool expr_error = false;
 
 static bool make_token(char *e) {
   int position = 0;
@@ -206,9 +207,12 @@ int DominantOp(int p, int q) {
 }
 int eval(int p, int q)
 {
+    if (expr_error) return 0;
+
     if(p > q){
         printf("error:p>q in eval,p=%d,q=%d\n", p, q);
-        assert(0);
+        expr_error = true;
+        return 0;
     }
 
     if(p == q){
@@ -245,6 +249,11 @@ int eval(int p, int q)
             return eval(p + 1, q - 1);
         else{
             int op = DominantOp(p, q);
+            if (op < 0) {
+                printf("error: no dominant operator in eval(p=%d,q=%d)\n", p, q);
+                expr_error = true;
+                return 0;
+            }
             vaddr_t addr;
             int result;
 
@@ -273,7 +282,13 @@ int eval(int p, int q)
                 case '+': return val1 + val2;
                 case '-': return val1 - val2;
                 case '*': return val1 * val2;
-                case '/': return val1 / val2;
+                case '/':
+                    if (val2 == 0) {
+                        printf("error: division by zero in eval()\n");
+                        expr_error = true;
+                        return 0;
+                    }
+                    return val1 / val2;
                 case TK_EQ: return val1 == val2;
                 case TK_NEQ: return val1 != val2;
                 case TK_AND: return val1 && val2;
@@ -290,6 +305,8 @@ uint32_t expr(char *e, bool *success) {
         *success = false;
         return 0;
     }
+
+    expr_error = false;
 
     /* Determine unary minus/dereference: if the previous token is a number,
      * hex, register or a closing parenthesis, then '-' and '*' are binary;
@@ -315,6 +332,12 @@ uint32_t expr(char *e, bool *success) {
         }
     }
 
+    int ret = eval(0, nr_token - 1);
+    if (expr_error) {
+        *success = false;
+        return 0;
+    }
+
     *success = true;
-    return eval(0, nr_token - 1);
+    return (uint32_t)ret;
 }
