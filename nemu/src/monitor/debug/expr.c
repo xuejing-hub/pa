@@ -291,20 +291,26 @@ uint32_t expr(char *e, bool *success) {
         return 0;
     }
 
-    if(tokens[0].type == '-')
+    /* Determine unary minus/dereference: if the previous token is a number,
+     * hex, register or a closing parenthesis, then '-' and '*' are binary;
+     * otherwise they are unary (negative / dereference).
+     */
+    if (tokens[0].type == '-')
         tokens[0].type = TK_NEGATIVE;
 
-    if(tokens[0].type == '*')
+    if (tokens[0].type == '*')
         tokens[0].type = TK_DEREF;
 
-    for(int i = 1; i < nr_token; i++){
-        if(tokens[i].type == '-'){
-            if(tokens[i-1].type != TK_NUMBER && tokens[i-1].type != ')')
+    for (int i = 1; i < nr_token; i++) {
+        if (tokens[i].type == '-') {
+            int prev = tokens[i - 1].type;
+            if (!(prev == TK_NUMBER || prev == TK_HEX || prev == TK_REG || prev == ')'))
                 tokens[i].type = TK_NEGATIVE;
         }
 
-        if(tokens[i].type == '*'){
-            if(tokens[i-1].type != TK_NUMBER && tokens[i-1].type != ')')
+        if (tokens[i].type == '*') {
+            int prev = tokens[i - 1].type;
+            if (!(prev == TK_NUMBER || prev == TK_HEX || prev == TK_REG || prev == ')'))
                 tokens[i].type = TK_DEREF;
         }
     }
