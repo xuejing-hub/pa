@@ -12,4 +12,7 @@ typedef struct watchpoint {
 
 } WP;
 
+/* Print all active watchpoints */
+void print_wp();
+
 #endif

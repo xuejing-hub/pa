@@ -54,31 +54,34 @@ static int cmd_si(char *args) {
   return 0;
 }
 static int cmd_info(char *args) {
-  if (args == NULL) {
-    printf("Please specify 'r' (registers) or 'w' (watchpoints)\n");
-    return 0;
-  }
-
-  char *sub = strtok(args, " ");
-  if (sub == NULL) return 0;
-
-  if (sub[0] == 'r') {
-    int i;
-    for (i = 0; i < 8; i++) {
-      printf("%s 0x%08x\n", reg_name(i, 4), reg_l(i));
+    char s;
+    if(args==NULL){
+        printf("args error in cmd_info\n");
+        return 0;
     }
-    printf("eip 0x%08x\n", cpu.eip);
-  }
-  else if (sub[0] == 'w') {
-    printf("watchpoint list not implemented yet.\n");
-  }
-  else {
-    printf("Unknown info subcommand '%s'\n", sub);
-  }
-
-  return 0;
+    int nRet=sscanf(args,"%c",&s);
+    if(nRet<=0){
+        printf("args error in cmd_info\n");
+        return 0;
+    }
+    if(s=='r'){
+        int i;
+        for(i=0;i<8;i++)
+            printf("%s  0x%x\n",regsl[i],reg_l(i));
+        printf("eip  0x%x\n",cpu.eip);
+        for(i=0;i<8;i++)
+            printf("%s  0x%x\n",regsw[i],reg_w(i));
+        for(i=0;i<8;i++)
+            printf("%s  0x%x\n",regsb[i],reg_b(i));
+        return 0;
+    }
+    if(s=='w'){
+        print_wp();
+        return 0;
+    }
+    printf("args error in cmd_info");
+    return 0;
 }
-
 static int cmd_x(char *args) {
   if (args == NULL) {
     printf("Usage: x N EXPR\n");
@@ -113,7 +116,6 @@ static int cmd_x(char *args) {
 
   return 0;
 }
-
 static int cmd_p(char *args) {
   if (args == NULL) {
     printf("Usage: p EXPR\n");
@@ -130,7 +132,6 @@ static int cmd_p(char *args) {
   printf("0x%08x\n", val);
   return 0;
 }
-
 static int cmd_w(char *args) {
   if (args == NULL) {
     printf("Usage: w EXPR\n");
@@ -147,7 +148,6 @@ static int cmd_w(char *args) {
   printf("set watchpoint for expression '%s' (value=0x%08x) -- watchpoint backend not implemented\n", args, val);
   return 0;
 }
-
 static int cmd_d(char *args) {
   if (args == NULL) {
     printf("Usage: d N\n");
