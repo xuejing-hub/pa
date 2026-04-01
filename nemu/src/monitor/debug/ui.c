@@ -1,6 +1,7 @@
 #include "monitor/monitor.h"
 #include "monitor/expr.h"
 #include "monitor/watchpoint.h"
+#include "monitor/breakpoint.h"
 #include "nemu.h"
 
 #include <stdlib.h>
@@ -176,6 +177,20 @@ static int cmd_d(char *args) {
   }
   return 0;
 }
+static int cmd_b(char *args) {
+  if (!args) { printf("Usage: b ADDR\n"); return 0; }
+  vaddr_t addr = strtoul(args, NULL, 0);
+  if (new_bp(addr)) return 0;
+  printf("Failed to set breakpoint at %s\n", args);
+  return 0;
+}
+static int cmd_db(char *args) {
+  if (!args) { printf("Usage: db N\n"); return 0; }
+  int no = strtol(args, NULL, 10);
+  if (free_bp(no)) printf("Success delete breakpoint %d\n", no);
+  else printf("error: no breakpoint %d\n", no);
+  return 0;
+}
 
 static int cmd_help(char *args);
 
@@ -193,6 +208,8 @@ static struct {
     {"p" ,"expr" ,cmd_p},
     {"w" ,"set the watchpoint",cmd_w},
     {"d" ,"delete the watchpoint",cmd_d},
+    {"b" ,"set breakpoint at ADDR", cmd_b},
+    {"db" ,"delete breakpoint by NO", cmd_db},
 };
 
 

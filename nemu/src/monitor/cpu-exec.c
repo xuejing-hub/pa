@@ -1,5 +1,6 @@
 #include "nemu.h"
 #include "monitor/monitor.h"
+#include "monitor/breakpoint.h"
 #include "monitor/watchpoint.h"
 
 /* The assembly code of instructions executed is only output to the screen
@@ -24,6 +25,13 @@ void cpu_exec(uint64_t n) {
   bool print_flag = n < MAX_INSTR_TO_PRINT;
 
   for (; n > 0; n --) {
+    /* check breakpoints before executing the next instruction */
+    #ifdef DEBUG
+    if (!check_bp(cpu.eip)) {
+      nemu_state = NEMU_STOP;
+      return;
+    }
+    #endif
     /* Execute one instruction, including instruction fetch,
      * instruction decode, and the actual execution. */
     exec_wrapper(print_flag);
