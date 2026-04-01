@@ -194,6 +194,27 @@ static int cmd_db(char *args) {
 
 static int cmd_help(char *args);
 
+static int cmd_shell(char *args) {
+  if (args == NULL) {
+    printf("Usage: shell COMMAND\n");
+    return 0;
+  }
+
+  FILE *fp = popen(args, "r");
+  if (fp == NULL) {
+    printf("Failed to run command: %s\n", args);
+    return 0;
+  }
+
+  char buf[256];
+  while (fgets(buf, sizeof(buf), fp) != NULL) {
+    fputs(buf, stdout);
+  }
+
+  pclose(fp);
+  return 0;
+}
+
 static struct {
   char *name;
   char *description;
@@ -210,6 +231,8 @@ static struct {
     {"d" ,"delete the watchpoint",cmd_d},
     {"b" ,"set breakpoint at ADDR", cmd_b},
     {"db" ,"delete breakpoint by NO", cmd_db},
+    {"shell", "Run a shell command", cmd_shell},
+    {"!", "Run a shell command (alias)", cmd_shell},
 };
 
 
