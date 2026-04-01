@@ -27,13 +27,141 @@ char* rl_gets() {
   return line_read;
 }
 
+
+
 static int cmd_c(char *args) {
   cpu_exec(-1);
   return 0;
 }
-
 static int cmd_q(char *args) {
   return -1;
+}
+static int cmd_si(char *args) {
+  if (args == NULL) {
+    cpu_exec(1);
+    return 0;
+  }
+
+  char *n_str = strtok(args, " ");
+  if (n_str == NULL) {
+    cpu_exec(1);
+    return 0;
+  }
+
+  int n = strtol(n_str, NULL, 10);
+  if (n <= 0) n = 1;
+  cpu_exec(n);
+  return 0;
+}
+static int cmd_info(char *args) {
+  if (args == NULL) {
+    printf("Please specify 'r' (registers) or 'w' (watchpoints)\n");
+    return 0;
+  }
+
+  char *sub = strtok(args, " ");
+  if (sub == NULL) return 0;
+
+  if (sub[0] == 'r') {
+    int i;
+    for (i = 0; i < 8; i++) {
+      printf("%s 0x%08x\n", reg_name(i, 4), reg_l(i));
+    }
+    printf("eip 0x%08x\n", cpu.eip);
+  }
+  else if (sub[0] == 'w') {
+    printf("watchpoint list not implemented yet.\n");
+  }
+  else {
+    printf("Unknown info subcommand '%s'\n", sub);
+  }
+
+  return 0;
+}
+
+static int cmd_x(char *args) {
+  if (args == NULL) {
+    printf("Usage: x N EXPR\n");
+    return 0;
+  }
+
+  char *n_str = strtok(args, " ");
+  char *expr_str = strtok(NULL, "\n");
+  if (n_str == NULL || expr_str == NULL) {
+    printf("Usage: x N EXPR\n");
+    return 0;
+  }
+
+  int n = strtol(n_str, NULL, 10);
+  if (n <= 0) {
+    printf("N should be positive\n");
+    return 0;
+  }
+
+  bool success = false;
+  uint32_t addr = expr(expr_str, &success);
+  if (!success) {
+    printf("Bad expression '%s'\n", expr_str);
+    return 0;
+  }
+
+  int i;
+  for (i = 0; i < n; i++) {
+    uint32_t val = paddr_read(addr + i * 4, 4);
+    printf("0x%08x: 0x%08x\n", addr + i * 4, val);
+  }
+
+  return 0;
+}
+
+static int cmd_p(char *args) {
+  if (args == NULL) {
+    printf("Usage: p EXPR\n");
+    return 0;
+  }
+
+  bool success = false;
+  uint32_t val = expr(args, &success);
+  if (!success) {
+    printf("Bad expression '%s'\n", args);
+    return 0;
+  }
+
+  printf("0x%08x\n", val);
+  return 0;
+}
+
+static int cmd_w(char *args) {
+  if (args == NULL) {
+    printf("Usage: w EXPR\n");
+    return 0;
+  }
+
+  bool success = false;
+  uint32_t val = expr(args, &success);
+  if (!success) {
+    printf("Bad expression '%s'\n", args);
+    return 0;
+  }
+
+  printf("set watchpoint for expression '%s' (value=0x%08x) -- watchpoint backend not implemented\n", args, val);
+  return 0;
+}
+
+static int cmd_d(char *args) {
+  if (args == NULL) {
+    printf("Usage: d N\n");
+    return 0;
+  }
+
+  int no = strtol(args, NULL, 10);
+  if (no < 0) {
+    printf("Invalid watchpoint number '%s'\n", args);
+    return 0;
+  }
+
+  printf("delete watchpoint %d -- watchpoint backend not implemented\n", no);
+  return 0;
 }
 
 static int cmd_help(char *args);
@@ -43,13 +171,17 @@ static struct {
   char *description;
   int (*handler) (char *);
 } cmd_table [] = {
-  { "help", "Display informations about all supported commands", cmd_help },
-  { "c", "Continue the execution of the program", cmd_c },
-  { "q", "Exit NEMU", cmd_q },
-
-  /* TODO: Add more commands */
-
+    { "help", "Display informations about all supported commands", cmd_help },
+    { "c", "Continue the execution of the program", cmd_c },
+    { "q", "Exit NEMU", cmd_q },
+    {"si", "args:[N];execute [N] instructions step by step" , cmd_si},
+    {"info","args:r/w;print information about registers or watchpoint" ,cmd_info},
+    {"x" ,"x [N] [EXPR];scan the memory" ,cmd_x},
+    {"p" ,"expr" ,cmd_p},
+    {"w" ,"set the watchpoint",cmd_w},
+    {"d" ,"delete the watchpoint",cmd_d},
 };
+
 
 #define NR_CMD (sizeof(cmd_table) / sizeof(cmd_table[0]))
 
@@ -75,6 +207,7 @@ static int cmd_help(char *args) {
   }
   return 0;
 }
+
 
 void ui_mainloop(int is_batch_mode) {
   if (is_batch_mode) {
