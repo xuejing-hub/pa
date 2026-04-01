@@ -136,26 +136,176 @@ static bool make_token(char *e) {
   return true;
 }
 
-uint32_t expr(char *e, bool *success) {
-  if (!make_token(e)) {
-    *success = false;
+
+bool check_parentheses(int p, int q){
+    if(p >= q){
+        printf("error:p>=q in check_parentheses\n");
+        return false;
+    }
+
+    if(tokens[p].type != '(' || tokens[q].type != ')')
+        return false;
+
+    int count = 0;
+    for(int curr = p + 1; curr < q; curr++){
+        if(tokens[curr].type == '(')
+            count += 1;
+
+        if(tokens[curr].type == ')'){
+            if(count != 0)
+                count -= 1;
+            else
+                return false;
+        }
+    }
+
+    if(count == 0)
+        return true;
+    else
+        return false;
+}
+int priority(int i) {
+    if (tokens[i].type == TK_NEGATIVE || tokens[i].type == TK_DEREF || tokens[i].type == '!') return 4;
+    else if (tokens[i].type == '*' || tokens[i].type == '/') return 3;
+    else if (tokens[i].type == '+' || tokens[i].type == '-') return 2;
+    else if (tokens[i].type == TK_EQ || tokens[i].type == TK_NEQ) return 1;
+    else if (tokens[i].type == TK_AND || tokens[i].type == TK_OR) return 0;
+    return 10000;
+}
+int DominantOp(int p, int q) {
+    int i = 0, j, cnt;
+    int op = 10000, opp, pos = -1;
+
+    for (i = p; i <= q; i++){
+        if (tokens[i].type == TK_NUMBER || tokens[i].type == TK_REG || tokens[i].type == TK_HEX)
+            continue;
+        else if (tokens[i].type == '(') {
+            cnt = 0;
+            for (j = i + 1; j <= q; j++) {
+                if (tokens[j].type == ')') {
+                    cnt++;
+                    i += cnt;
+                    break;
+                }
+                else
+                    cnt++;
+            }
+        }
+        else {
+            opp = priority(i);
+            if (opp <= op) {
+                pos = i;
+                op = opp;
+            }
+        }
+    }
+    return pos;
+}
+int eval(int p, int q)
+{
+    if(p > q){
+        printf("error:p>q in eval,p=%d,q=%d\n", p, q);
+        assert(0);
+    }
+
+    if(p == q){
+        int num;
+        switch(tokens[p].type){
+            case TK_NUMBER:
+                sscanf(tokens[p].str, "%d", &num);
+                return num;
+
+            case TK_HEX:
+                sscanf(tokens[p].str, "%x", &num);
+                return num;
+
+            case TK_REG:
+                for(int i = 0; i < 8; i++){
+                    if(strcmp(tokens[p].str, regsl[i]) == 0)
+                        return reg_l(i);
+                    if(strcmp(tokens[p].str, regsw[i]) == 0)
+                        return reg_w(i);
+                    if(strcmp(tokens[p].str, regsb[i]) == 0)
+                        return reg_b(i);
+                }
+                if(strcmp(tokens[p].str, "eip") == 0)
+                    return cpu.eip;
+                else{
+                    printf("error in TK_REG in eval()\n");
+                    assert(0);
+                }
+        }
+    }
+
+    if(p < q){
+        if(check_parentheses(p, q) == true)
+            return eval(p + 1, q - 1);
+        else{
+            int op = DominantOp(p, q);
+            vaddr_t addr;
+            int result;
+
+            switch(tokens[op].type){
+                case TK_NEGATIVE:
+                    return -eval(p + 1, q);
+
+                case TK_DEREF:
+                    addr = eval(p + 1, q);
+                    result = vaddr_read(addr, 4);
+                    printf("addr=%u(0x%x)----->value=%d(0x%08x)\n", addr, addr, result, result);
+                    return result;
+
+                case '!':
+                    result = eval(p + 1, q);
+                    if(result != 0)
+                        return 0;
+                    else
+                        return 1;
+            }
+
+            int val1 = eval(p, op - 1);
+            int val2 = eval(op + 1, q);
+
+            switch(tokens[op].type){
+                case '+': return val1 + val2;
+                case '-': return val1 - val2;
+                case '*': return val1 * val2;
+                case '/': return val1 / val2;
+                case TK_EQ: return val1 == val2;
+                case TK_NEQ: return val1 != val2;
+                case TK_AND: return val1 && val2;
+                case TK_OR: return val1 || val2;
+                default: assert(0);
+            }
+        }
+    }
+
     return 0;
-  }
-
-  /* Minimal implementation: handle single-number expressions (decimal/hex).
-   * Larger expression evaluation can be implemented later.
-   */
-  if (nr_token == 1) {
-    if (tokens[0].type == TK_NUMBER) {
-      *success = true;
-      return (uint32_t)strtoul(tokens[0].str, NULL, 10);
+}
+uint32_t expr(char *e, bool *success) {
+    if (!make_token(e)) {
+        *success = false;
+        return 0;
     }
-    else if (tokens[0].type == TK_HEX) {
-      *success = true;
-      return (uint32_t)strtoul(tokens[0].str, NULL, 16);
-    }
-  }
 
-  *success = false;
-  return 0;
+    if(tokens[0].type == '-')
+        tokens[0].type = TK_NEGATIVE;
+
+    if(tokens[0].type == '*')
+        tokens[0].type = TK_DEREF;
+
+    for(int i = 1; i < nr_token; i++){
+        if(tokens[i].type == '-'){
+            if(tokens[i-1].type != TK_NUMBER && tokens[i-1].type != ')')
+                tokens[i].type = TK_NEGATIVE;
+        }
+
+        if(tokens[i].type == '*'){
+            if(tokens[i-1].type != TK_NUMBER && tokens[i-1].type != ')')
+                tokens[i].type = TK_DEREF;
+        }
+    }
+
+    *success = true;
+    return eval(0, nr_token - 1);
 }
