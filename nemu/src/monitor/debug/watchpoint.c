@@ -20,4 +20,18 @@ void init_wp_pool() {
 
 /* TODO: Implement the functionality of watchpoint */
 
+void print_wp() {
+  WP *p = head;
+  if (p == NULL) {
+    printf("No watchpoint\n");
+    return;
+  }
+  printf("Num\tExpression\tValue\n");
+  while (p) {
+    /* no expression/value stored in this simplified WP, just print NO */
+    printf("%d\t(unspecified)\n", p->NO);
+    p = p->next;
+  }
+}
+
 
