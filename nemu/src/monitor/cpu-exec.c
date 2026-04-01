@@ -14,6 +14,7 @@ void exec_wrapper(bool);
 
 /* Simulate how the CPU works. */
 void cpu_exec(uint64_t n) {
+  printf("n = %llu\n", n);
   if (nemu_state == NEMU_END) {
     printf("Program execution has ended. To restart the program, exit NEMU and run again.\n");
     return;
