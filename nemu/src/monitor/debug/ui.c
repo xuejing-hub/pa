@@ -83,38 +83,60 @@ static int cmd_info(char *args) {
     return 0;
 }
 static int cmd_x(char *args) {
-    if(!args){
-        printf("args error in cmd_si\n");
-        return 0;
-    }
-    char* args_end = args + strlen(args), *first_args = strtok(args, " ");
-    if(!first_args){
-        printf("args error in cmd_si\n");
-        return 0;
-    }
-    char *exprs = first_args + strlen(first_args) + 1;
-    if(exprs >= args_end){
-        printf("args error in cmd_si\n");
-        return 0;
-    }
-    int n = atoi(first_args);
-    bool success;
-    vaddr_t addr = expr(exprs, &success);
-    if(success == false)
-        printf("error in expr()\n");
-    printf("Memory:");
-    printf("\n");
-    for(int i = 0; i < n; i++){
-        printf("0x%x:", addr);
-        uint32_t val = vaddr_read(addr, 4);
-        uint8_t *by = (uint8_t *)&val;
-        printf("0x");
-        for(int j = 3; j >= 0; j--)
-            printf("%02x", by[j]);
-        printf("\n");
-        addr += 4;
-    }
+  if (args == NULL) {
+    printf("Usage: x N EXPR\n");
     return 0;
+  }
+
+  /* parse count */
+  char *args_copy = strdup(args);
+  if (!args_copy) return 0;
+  char *count_str = strtok(args_copy, " ");
+  if (!count_str) {
+    free(args_copy);
+    printf("Usage: x N EXPR\n");
+    return 0;
+  }
+
+  int n = atoi(count_str);
+  if (n <= 0) {
+    free(args_copy);
+    printf("Invalid count '%s'\n", count_str);
+    return 0;
+  }
+
+  /* find expression start in original args to preserve spacing */
+  char *space = strchr(args, ' ');
+  if (space == NULL) {
+    free(args_copy);
+    printf("Usage: x N EXPR\n");
+    return 0;
+  }
+  char *exprs = space + 1;
+  while (*exprs == ' ') exprs++; /* skip extra spaces */
+  if (*exprs == '\0') {
+    free(args_copy);
+    printf("Usage: x N EXPR\n");
+    return 0;
+  }
+
+  bool success = false;
+  vaddr_t addr = expr(exprs, &success);
+  if (!success) {
+    free(args_copy);
+    printf("error in expr()\n");
+    return 0;
+  }
+
+  printf("Memory:\n");
+  for (int i = 0; i < n; i++) {
+    uint32_t val = vaddr_read(addr, 4);
+    printf("0x%08x: 0x%08x\n", addr, val);
+    addr += 4;
+  }
+
+  free(args_copy);
+  return 0;
 }
 static int cmd_p(char *args) {
     bool success;

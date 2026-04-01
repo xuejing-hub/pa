@@ -16,6 +16,15 @@ enum {
   TK_NEQ,
   TK_AND,
   TK_OR,
+  TK_BOR,
+  TK_BXOR,
+  TK_BAND,
+  TK_SHL,
+  TK_SHR,
+  TK_LT,
+  TK_LE,
+  TK_GT,
+  TK_GE,
   TK_NEGATIVE,
   TK_DEREF,
   /* TODO: Add more token types */
@@ -38,6 +47,15 @@ static struct rule {
   {"!=", TK_NEQ},
   {"&&", TK_AND},
   {"\\|\\|", TK_OR},
+  {"\\|", TK_BOR},
+  {"\\^", TK_BXOR},
+  {"&", TK_BAND},
+  {"<<", TK_SHL},
+  {">>", TK_SHR},
+  {"<=", TK_LE},
+  {">=", TK_GE},
+  {"<", TK_LT},
+  {">", TK_GT},
   {"!", '!'},
   {"\\+", '+'},      // plus
   {"\\-", '-'},
@@ -169,11 +187,18 @@ bool check_parentheses(int p, int q){
         return false;
 }
 int priority(int i) {
-    if (tokens[i].type == TK_NEGATIVE || tokens[i].type == TK_DEREF || tokens[i].type == '!') return 4;
-    else if (tokens[i].type == '*' || tokens[i].type == '/') return 3;
-    else if (tokens[i].type == '+' || tokens[i].type == '-') return 2;
-    else if (tokens[i].type == TK_EQ || tokens[i].type == TK_NEQ) return 1;
-    else if (tokens[i].type == TK_AND || tokens[i].type == TK_OR) return 0;
+    /* Lower number -> lower precedence (DominantOp picks smallest). */
+    if (tokens[i].type == TK_OR) return 0;               /* || */
+    if (tokens[i].type == TK_AND) return 1;              /* && */
+    if (tokens[i].type == TK_BOR) return 2;              /* |  */
+    if (tokens[i].type == TK_BXOR) return 3;             /* ^  */
+    if (tokens[i].type == TK_BAND) return 4;             /* &  */
+    if (tokens[i].type == TK_EQ || tokens[i].type == TK_NEQ) return 5; /* == != */
+    if (tokens[i].type == TK_LT || tokens[i].type == TK_LE || tokens[i].type == TK_GT || tokens[i].type == TK_GE) return 6; /* < <= > >= */
+    if (tokens[i].type == TK_SHL || tokens[i].type == TK_SHR) return 7; /* << >> */
+    if (tokens[i].type == '+' || tokens[i].type == '-') return 8;
+    if (tokens[i].type == '*' || tokens[i].type == '/') return 9;
+    if (tokens[i].type == TK_NEGATIVE || tokens[i].type == TK_DEREF || tokens[i].type == '!') return 10; /* unary */
     return 10000;
 }
 int DominantOp(int p, int q) {
@@ -289,6 +314,15 @@ int eval(int p, int q)
                         return 0;
                     }
                     return val1 / val2;
+                case TK_SHL: return val1 << val2;
+                case TK_SHR: return val1 >> val2;
+                case TK_LT: return val1 < val2;
+                case TK_LE: return val1 <= val2;
+                case TK_GT: return val1 > val2;
+                case TK_GE: return val1 >= val2;
+                case TK_BAND: return val1 & val2;
+                case TK_BXOR: return val1 ^ val2;
+                case TK_BOR: return val1 | val2;
                 case TK_EQ: return val1 == val2;
                 case TK_NEQ: return val1 != val2;
                 case TK_AND: return val1 && val2;
