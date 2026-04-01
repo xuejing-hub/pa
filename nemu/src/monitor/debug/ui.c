@@ -83,38 +83,45 @@ static int cmd_info(char *args) {
     return 0;
 }
 static int cmd_x(char *args) {
-  if (args == NULL) {
-    printf("Usage: x N EXPR\n");
+    if (!args) {
+        printf("args error in cmd_si\n");
+        return 0;
+    }
+
+    char *args_end = args + strlen(args);
+    char *first_args = strtok(args, " ");
+    if (!first_args) {
+        printf("args error in cmd_si\n");
+        return 0;
+    }
+
+    char *exprs = first_args + strlen(first_args) + 1;
+    if (exprs >= args_end) {
+        printf("args error in cmd_si\n");
+        return 0;
+    }
+
+    int n = atoi(first_args);
+    bool success;
+    vaddr_t addr = expr(exprs, &success);
+
+    if (success == false)
+        printf("error in expr()\n");
+
+    printf("Memory:\n");
+
+    for (int i = 0; i < n; i++) {
+        printf("0x%x:", addr);
+        uint32_t val = vaddr_read(addr, 4);
+        uint8_t *by = (uint8_t *)&val;
+        printf("0x");
+        for (int j = 3; j >= 0; j--)
+            printf("%02x", by[j]);
+        printf("\n");
+        addr += 4;
+    }
+
     return 0;
-  }
-
-  char *n_str = strtok(args, " ");
-  char *expr_str = strtok(NULL, "\n");
-  if (n_str == NULL || expr_str == NULL) {
-    printf("Usage: x N EXPR\n");
-    return 0;
-  }
-
-  int n = strtol(n_str, NULL, 10);
-  if (n <= 0) {
-    printf("N should be positive\n");
-    return 0;
-  }
-
-  bool success = false;
-  uint32_t addr = expr(expr_str, &success);
-  if (!success) {
-    printf("Bad expression '%s'\n", expr_str);
-    return 0;
-  }
-
-  int i;
-  for (i = 0; i < n; i++) {
-    uint32_t val = paddr_read(addr + i * 4, 4);
-    printf("0x%08x: 0x%08x\n", addr + i * 4, val);
-  }
-
-  return 0;
 }
 static int cmd_p(char *args) {
   if (args == NULL) {
