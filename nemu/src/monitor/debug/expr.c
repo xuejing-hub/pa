@@ -5,6 +5,7 @@
  */
 #include <sys/types.h>
 #include <regex.h>
+#include <stdlib.h>
 
 enum {
   TK_NOTYPE = 256,
@@ -141,8 +142,20 @@ uint32_t expr(char *e, bool *success) {
     return 0;
   }
 
-  /* TODO: Insert codes to evaluate the expression. */
-  TODO();
+  /* Minimal implementation: handle single-number expressions (decimal/hex).
+   * Larger expression evaluation can be implemented later.
+   */
+  if (nr_token == 1) {
+    if (tokens[0].type == TK_NUMBER) {
+      *success = true;
+      return (uint32_t)strtoul(tokens[0].str, NULL, 10);
+    }
+    else if (tokens[0].type == TK_HEX) {
+      *success = true;
+      return (uint32_t)strtoul(tokens[0].str, NULL, 16);
+    }
+  }
 
+  *success = false;
   return 0;
 }
