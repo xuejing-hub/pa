@@ -45,6 +45,7 @@ static struct rule {
   {"\\$(eax|ecx|edx|ebx|esp|ebp|esi|edi|eip|ax|cx|dx|bx|sp|bp|si|di|al|cl|dl|bl|ah|ch|dh|bh)", TK_REG},
   {"==", TK_EQ},
   {"!=", TK_NEQ},
+  {"=", TK_EQ},
   {"&&", TK_AND},
   {"\\|\\|", TK_OR},
   {"\\|", TK_BOR},
