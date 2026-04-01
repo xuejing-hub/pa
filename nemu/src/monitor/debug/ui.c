@@ -76,7 +76,7 @@ static int cmd_info(char *args) {
         return 0;
     }
     if(s=='w'){
-        print_wp();
+      print_wp();
         return 0;
     }
     printf("args error in cmd_info");
@@ -152,15 +152,10 @@ static int cmd_w(char *args) {
     printf("Usage: w EXPR\n");
     return 0;
   }
-
-  bool success = false;
-  uint32_t val = expr(args, &success);
-  if (!success) {
-    printf("Bad expression '%s'\n", args);
+  if (new_wp(args)) {
     return 0;
   }
-
-  printf("set watchpoint for expression '%s' (value=0x%08x) -- watchpoint backend not implemented\n", args, val);
+  printf("Failed to set watchpoint for '%s'\n", args);
   return 0;
 }
 static int cmd_d(char *args) {
@@ -174,8 +169,11 @@ static int cmd_d(char *args) {
     printf("Invalid watchpoint number '%s'\n", args);
     return 0;
   }
-
-  printf("delete watchpoint %d -- watchpoint backend not implemented\n", no);
+  if (free_wp(no)) {
+    printf("Success delete watchpoint %d\n", no);
+  } else {
+    printf("error: no watchpoint %d\n", no);
+  }
   return 0;
 }
 
