@@ -45,7 +45,6 @@ $(BINARY): $(OBJS)
 run: $(BINARY)
 	$(call git_commit, "run")
 	$(NEMU_EXEC)
-	@git log --graph --decorate --all --pretty=fuller > pa1log.txt
 
 gdb: $(BINARY)
 	$(call git_commit, "gdb")
