@@ -55,33 +55,42 @@ static int cmd_si(char *args) {
   return 0;
 }
 static int cmd_info(char *args) {
-    char s;
-    if(args==NULL){
-        printf("args error in cmd_info\n");
-        return 0;
-    }
-    int nRet=sscanf(args,"%c",&s);
-    if(nRet<=0){
-        printf("args error in cmd_info\n");
-        return 0;
-    }
-    if(s=='r'){
-        int i;
-        for(i=0;i<8;i++)
-            printf("%s  0x%x\n",regsl[i],reg_l(i));
-        printf("eip  0x%x\n",cpu.eip);
-        for(i=0;i<8;i++)
-            printf("%s  0x%x\n",regsw[i],reg_w(i));
-        for(i=0;i<8;i++)
-            printf("%s  0x%x\n",regsb[i],reg_b(i));
-        return 0;
-    }
-    if(s=='w'){
-      print_wp();
-        return 0;
-    }
-    printf("args error in cmd_info");
+  if (args == NULL || *args == '\0') {
+    printf("args error in cmd_info\n");
     return 0;
+  }
+
+  while (*args == ' ') args++;   // 跳过前导空格
+
+  switch (*args) {
+    case 'r': {
+      int i;
+
+      for (i = 0; i < 8; i++) {
+        printf("%s  0x%x\n", regsl[i], reg_l(i));
+      }
+
+      printf("eip  0x%x\n", cpu.eip);
+
+      for (i = 0; i < 8; i++) {
+        printf("%s  0x%x\n", regsw[i], reg_w(i));
+      }
+
+      for (i = 0; i < 8; i++) {
+        printf("%s  0x%x\n", regsb[i], reg_b(i));
+      }
+
+      return 0;
+    }
+
+    case 'w':
+      print_wp();
+      return 0;
+
+    default:
+      printf("args error in cmd_info\n");
+      return 0;
+  }
 }
 static int cmd_x(char *args) {
   if (args == NULL) {
