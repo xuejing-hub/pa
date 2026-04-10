@@ -143,16 +143,29 @@ static int cmd_x(char *args) {
 }
 
 
-
+//求值表达式，参数为表达式字符串，返回值为表达式的计算结果
 static int cmd_p(char *args) {
-    bool success;
-    int res = expr(args, &success);
-    if(success == false)
-        printf("error in expr()\n");
-    else
-        printf("the value of expr is:%d\n", res);
+  if (args == NULL) {
+    printf("Usage: p EXPR\n");
     return 0;
+  }
+  while (*args == ' ' || *args == '\t') args++;
+  if (*args == '\0') {
+    printf("Usage: p EXPR\n");
+    return 0;
+  }
+  bool success = false;
+  uint32_t res = expr(args, &success);
+  if (!success) {
+    printf("error in expr(): %s\n", args);
+  } else {
+    printf("the value of expr is: %u (0x%x)\n", res, res);
+  }
+  return 0;
 }
+
+
+
 static int cmd_w(char *args) {
   if (args == NULL) {
     printf("Usage: w EXPR\n");
