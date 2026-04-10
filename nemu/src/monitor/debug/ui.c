@@ -229,19 +229,70 @@ static int cmd_d(char *args) {
 }
 
 
-
+//设置断点，参数为地址表达式字符串，表达式求值后得到断点地址
 static int cmd_b(char *args) {
-  if (!args) { printf("Usage: b ADDR\n"); return 0; }
-  vaddr_t addr = strtoul(args, NULL, 0);
-  if (new_bp(addr)) return 0;
-  printf("Failed to set breakpoint at %s\n", args);
+  if (args == NULL) {
+    printf("Usage: b ADDR\n");
+    return 0;
+  }
+
+  while (*args == ' ' || *args == '\t') args++;
+  if (*args == '\0') {
+    printf("Usage: b ADDR\n");
+    return 0;
+  }
+
+  char expr_buf[128];
+  snprintf(expr_buf, sizeof(expr_buf), "$eip==%s", args);
+
+  if (new_wp(expr_buf)) {
+    printf("Breakpoint set at %s\n", args);
+  } else {
+    printf("Failed to set breakpoint at %s\n", args);
+  }
+
   return 0;
 }
+
+
+//删除断点，参数为断点编号
 static int cmd_db(char *args) {
-  if (!args) { printf("Usage: db N\n"); return 0; }
-  int no = strtol(args, NULL, 10);
-  if (free_bp(no)) printf("Success delete breakpoint %d\n", no);
-  else printf("error: no breakpoint %d\n", no);
+  if (args == NULL) {
+    printf("Usage: db N\n");
+    return 0;
+  }
+
+  while (*args == ' ' || *args == '\t') args++;
+  if (*args == '\0') {
+    printf("Usage: db N\n");
+    return 0;
+  }
+
+  char *endptr = NULL;
+  long no = strtol(args, &endptr, 10);
+
+  if (endptr == args) {
+    printf("Invalid breakpoint number '%s'\n", args);
+    return 0;
+  }
+
+  while (*endptr == ' ' || *endptr == '\t') endptr++;
+  if (*endptr != '\0') {
+    printf("Invalid breakpoint number '%s'\n", args);
+    return 0;
+  }
+
+  if (no < 0) {
+    printf("Invalid breakpoint number '%s'\n", args);
+    return 0;
+  }
+
+  if (free_wp((int)no)) {
+    printf("Success delete breakpoint %ld\n", no);
+  } else {
+    printf("error: no breakpoint %ld\n", no);
+  }
+
   return 0;
 }
 
