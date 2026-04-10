@@ -101,47 +101,44 @@ static int cmd_x(char *args) {
     printf("Usage: x N EXPR\n");
     return 0;
   }
-  char *args_copy = strdup(args);
-  if (!args_copy) return 0;
-  char *count_str = strtok(args_copy, " ");
-  if (!count_str) {
-    free(args_copy);
+  while (*args == ' ') args++;
+  if (*args == '\0') {
     printf("Usage: x N EXPR\n");
     return 0;
   }
-  int n = atoi(count_str);
-  if (n <= 0) {
-    free(args_copy);
-    printf("Invalid count '%s'\n", count_str);
-    return 0;
-  }
-  char *space = strchr(args, ' ');
-  if (space == NULL) {
-    free(args_copy);
+  char *endptr = NULL;
+  long n_long = strtol(args, &endptr, 10);
+  if (endptr == args) {
     printf("Usage: x N EXPR\n");
     return 0;
   }
-  char *exprs = space + 1;
-  while (*exprs == ' ') exprs++; 
-  if (*exprs == '\0') {
-    free(args_copy);
+  if (n_long <= 0) {
+    printf("Invalid count: %ld\n", n_long);
+    return 0;
+  }
+  int n = (int)n_long;
+  while (*endptr == ' ') endptr++;
+  if (*endptr == '\0') {
     printf("Usage: x N EXPR\n");
     return 0;
   }
   bool success = false;
-  vaddr_t addr = expr(exprs, &success);
+  vaddr_t addr = expr(endptr, &success);
   if (!success) {
-    free(args_copy);
-    printf("error in expr()\n");
+    printf("Bad expression: %s\n", endptr);
     return 0;
   }
+  const uint32_t PMEM_SIZE = 128 * 1024 * 1024;
   printf("Memory:\n");
   for (int i = 0; i < n; i++) {
+    if (addr > PMEM_SIZE - 4) {
+      printf("Address out of bound: 0x%08x\n", addr);
+      return 0;
+    }
     uint32_t val = vaddr_read(addr, 4);
     printf("0x%08x: 0x%08x\n", addr, val);
     addr += 4;
   }
-  free(args_copy);
   return 0;
 }
 
