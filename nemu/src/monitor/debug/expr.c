@@ -251,220 +251,260 @@ static bool make_token(char *e) {
   return true;
 }
 
-
-bool check_parentheses(int p, int q){
-    if(p >= q){
-        printf("error:p>=q in check_parentheses\n");
-        return false;
-    }
-
-    if(tokens[p].type != '(' || tokens[q].type != ')')
-        return false;
-
-    int count = 0;
-    for(int curr = p + 1; curr < q; curr++){
-        if(tokens[curr].type == '(')
-            count += 1;
-
-        if(tokens[curr].type == ')'){
-            if(count != 0)
-                count -= 1;
-            else
-                return false;
-        }
-    }
-
-    if(count == 0)
-        return true;
-    else
-        return false;
+static bool is_unary_token(int type) {
+  return type == TK_NEGATIVE || type == TK_DEREF || type == '!';
 }
-int priority(int i) {
-    /* Lower number -> lower precedence (DominantOp picks smallest). */
-    if (tokens[i].type == TK_OR) return 0;               /* || */
-    if (tokens[i].type == TK_AND) return 1;              /* && */
-    if (tokens[i].type == TK_BOR) return 2;              /* |  */
-    if (tokens[i].type == TK_BXOR) return 3;             /* ^  */
-    if (tokens[i].type == TK_BAND) return 4;             /* &  */
-    if (tokens[i].type == TK_EQ || tokens[i].type == TK_NEQ) return 5; /* == != */
-    if (tokens[i].type == TK_LT || tokens[i].type == TK_LE || tokens[i].type == TK_GT || tokens[i].type == TK_GE) return 6; /* < <= > >= */
-    if (tokens[i].type == TK_SHL || tokens[i].type == TK_SHR) return 7; /* << >> */
-    if (tokens[i].type == '+' || tokens[i].type == '-') return 8;
-    if (tokens[i].type == '*' || tokens[i].type == '/') return 9;
-    if (tokens[i].type == TK_NEGATIVE || tokens[i].type == TK_DEREF || tokens[i].type == '!') return 10; /* unary */
-    return 10000;
+
+
+bool check_parentheses(int p, int q) {
+  if (p > q) {
+    printf("error: p > q in check_parentheses(), p=%d, q=%d\n", p, q);
+    return false;
+  }
+
+  if (tokens[p].type != '(' || tokens[q].type != ')') {
+    return false;
+  }
+
+  int balance = 0;
+  for (int i = p; i <= q; i++) {
+    if (tokens[i].type == '(') {
+      balance++;
+    }
+    else if (tokens[i].type == ')') {
+      balance--;
+      if (balance < 0) {
+        return false;
+      }
+
+      /* If balance becomes 0 before q, then the outermost '(' at p
+       * does not pair with q, so [p,q] is not fully enclosed.
+       */
+      if (balance == 0 && i < q) {
+        return false;
+      }
+    }
+  }
+
+  return balance == 0;
 }
+
+
+
+int priority(int type) {
+  /* smaller value => lower precedence => more likely to be dominant operator */
+
+  if (type == TK_OR) return 0;                              // ||
+  if (type == TK_AND) return 1;                             // &&
+  if (type == TK_BOR) return 2;                             // |
+  if (type == TK_BXOR) return 3;                            // ^
+  if (type == TK_BAND) return 4;                            // &
+  if (type == TK_EQ || type == TK_NEQ) return 5;            // == !=
+  if (type == TK_LT || type == TK_LE ||
+      type == TK_GT || type == TK_GE) return 6;            // < <= > >=
+  if (type == TK_SHL || type == TK_SHR) return 7;           // << >>
+  if (type == '+' || type == '-') return 8;                 // + -
+  if (type == '*' || type == '/') return 9;                 // * /
+  if (type == TK_NEGATIVE || type == TK_DEREF || type == '!') return 10; // unary
+
+  return 10000;
+}
+
 int DominantOp(int p, int q) {
-    int i = 0, j, cnt;
-    int op = 10000, opp, pos = -1;
+  int pos = -1;
+  int best_pri = 10000;
+  int balance = 0;
 
-    for (i = p; i <= q; i++){
-        if (tokens[i].type == TK_NUMBER || tokens[i].type == TK_REG || tokens[i].type == TK_HEX)
-            continue;
-        else if (tokens[i].type == '(') {
-            cnt = 0;
-            for (j = i + 1; j <= q; j++) {
-                if (tokens[j].type == ')') {
-                    cnt++;
-                    i += cnt;
-                    break;
-                }
-                else
-                    cnt++;
-            }
-        }
-        else {
-            opp = priority(i);
-            if (opp <= op) {
-                pos = i;
-                op = opp;
-            }
-        }
+  for (int i = p; i <= q; i++) {
+    int type = tokens[i].type;
+
+    if (type == '(') {
+      balance++;
+      continue;
     }
-    return pos;
-}
-int eval(int p, int q)
-{
-    if (expr_error) return 0;
+    if (type == ')') {
+      balance--;
+      continue;
+    }
 
-    if(p > q){
-        printf("error:p>q in eval,p=%d,q=%d\n", p, q);
+    if (balance != 0) {
+      continue;  // ignore operators inside parentheses
+    }
+
+    if (type == TK_NUMBER || type == TK_HEX || type == TK_REG) {
+      continue;
+    }
+
+    int pri = priority(type);
+    if (pri == 10000) {
+      continue;
+    }
+
+    if (pri < best_pri) {
+      best_pri = pri;
+      pos = i;
+    }
+    else if (pri == best_pri) {
+      /* tie-breaking:
+       * - binary left-associative operators: choose the rightmost one
+       * - unary prefix operators: choose the leftmost one
+       */
+      if (!is_unary_token(type)) {
+        pos = i;
+      }
+    }
+  }
+
+  return pos;
+}
+
+
+uint32_t get_reg_val(const char *s) {
+  for (int i = 0; i < 8; i++) {
+    if (strcmp(s, regsl[i]) == 0) return reg_l(i);
+    if (strcmp(s, regsw[i]) == 0) return reg_w(i);
+    if (strcmp(s, regsb[i]) == 0) return reg_b(i);
+  }
+
+  if (strcmp(s, "eip") == 0) return cpu.eip;
+
+  printf("error: unknown register %s\n", s);
+  expr_error = true;
+  return 0;
+}
+
+
+uint32_t eval(int p, int q) {
+  if (expr_error) return 0;
+
+  if (p > q) {
+    printf("error: bad expression, p=%d, q=%d\n", p, q);
+    expr_error = true;
+    return 0;
+  }
+
+  if (p == q) {
+    switch (tokens[p].type) {
+      case TK_NUMBER:
+        return (uint32_t)strtoul(tokens[p].str, NULL, 10);
+
+      case TK_HEX:
+        return (uint32_t)strtoul(tokens[p].str, NULL, 16);
+
+      case TK_REG:
+        return get_reg_val(tokens[p].str);
+
+      default:
+        printf("error: unexpected single token type=%d at %d\n", tokens[p].type, p);
         expr_error = true;
         return 0;
     }
+  }
 
-    if(p == q){
-        int num;
-        switch(tokens[p].type){
-            case TK_NUMBER:
-                sscanf(tokens[p].str, "%d", &num);
-                return num;
+  if (check_parentheses(p, q)) {
+    return eval(p + 1, q - 1);
+  }
 
-            case TK_HEX:
-                sscanf(tokens[p].str, "%x", &num);
-                return num;
-
-            case TK_REG:
-                for(int i = 0; i < 8; i++){
-                    if(strcmp(tokens[p].str, regsl[i]) == 0)
-                        return reg_l(i);
-                    if(strcmp(tokens[p].str, regsw[i]) == 0)
-                        return reg_w(i);
-                    if(strcmp(tokens[p].str, regsb[i]) == 0)
-                        return reg_b(i);
-                }
-                if(strcmp(tokens[p].str, "eip") == 0)
-                    return cpu.eip;
-                else{
-                    printf("error in TK_REG in eval()\n");
-                    assert(0);
-                }
-        }
-    }
-
-    if(p < q){
-        if(check_parentheses(p, q) == true)
-            return eval(p + 1, q - 1);
-        else{
-            int op = DominantOp(p, q);
-            if (op < 0) {
-                printf("error: no dominant operator in eval(p=%d,q=%d)\n", p, q);
-                expr_error = true;
-                return 0;
-            }
-            vaddr_t addr;
-            int result;
-
-            switch(tokens[op].type){
-                case TK_NEGATIVE:
-                    return -eval(p + 1, q);
-
-                case TK_DEREF:
-                    addr = eval(p + 1, q);
-                    result = vaddr_read(addr, 4);
-                    printf("addr=%u(0x%x)----->value=%d(0x%08x)\n", addr, addr, result, result);
-                    return result;
-
-                case '!':
-                    result = eval(p + 1, q);
-                    if(result != 0)
-                        return 0;
-                    else
-                        return 1;
-            }
-
-            int val1 = eval(p, op - 1);
-            int val2 = eval(op + 1, q);
-
-            switch(tokens[op].type){
-                case '+': return val1 + val2;
-                case '-': return val1 - val2;
-                case '*': return val1 * val2;
-                case '/':
-                    if (val2 == 0) {
-                        printf("error: division by zero in eval()\n");
-                        expr_error = true;
-                        return 0;
-                    }
-                    return val1 / val2;
-                case TK_SHL: return val1 << val2;
-                case TK_SHR: return val1 >> val2;
-                case TK_LT: return val1 < val2;
-                case TK_LE: return val1 <= val2;
-                case TK_GT: return val1 > val2;
-                case TK_GE: return val1 >= val2;
-                case TK_BAND: return val1 & val2;
-                case TK_BXOR: return val1 ^ val2;
-                case TK_BOR: return val1 | val2;
-                case TK_EQ: return val1 == val2;
-                case TK_NEQ: return val1 != val2;
-                case TK_AND: return val1 && val2;
-                case TK_OR: return val1 || val2;
-                default: assert(0);
-            }
-        }
-    }
-
+  int op = DominantOp(p, q);
+  if (op < 0) {
+    printf("error: no dominant operator in eval(p=%d, q=%d)\n", p, q);
+    expr_error = true;
     return 0;
+  }
+
+  /* unary operators */
+  if (tokens[op].type == TK_NEGATIVE) {
+    return (uint32_t)(-(int32_t)eval(op + 1, q));
+  }
+
+  if (tokens[op].type == TK_DEREF) {
+    uint32_t addr = eval(op + 1, q);
+    const uint32_t PMEM_SIZE = 128 * 1024 * 1024;
+
+    if (addr > PMEM_SIZE - 4) {
+      printf("error: dereference address out of bound: 0x%08x\n", addr);
+      expr_error = true;
+      return 0;
+    }
+
+    uint32_t result = vaddr_read(addr, 4);
+    printf("addr=%u(0x%x)----->value=%u(0x%08x)\n", addr, addr, result, result);
+    return result;
+  }
+
+  if (tokens[op].type == '!') {
+    return !eval(op + 1, q);
+  }
+
+  uint32_t val1 = eval(p, op - 1);
+  uint32_t val2 = eval(op + 1, q);
+
+  if (expr_error) return 0;
+
+  switch (tokens[op].type) {
+    case '+': return val1 + val2;
+    case '-': return val1 - val2;
+    case '*': return val1 * val2;
+
+    case '/':
+      if (val2 == 0) {
+        printf("error: division by zero\n");
+        expr_error = true;
+        return 0;
+      }
+      return val1 / val2;
+
+    case TK_SHL: return val1 << val2;
+    case TK_SHR: return val1 >> val2;
+
+    case TK_LT:  return val1 < val2;
+    case TK_LE:  return val1 <= val2;
+    case TK_GT:  return val1 > val2;
+    case TK_GE:  return val1 >= val2;
+
+    case TK_BAND: return val1 & val2;
+    case TK_BXOR: return val1 ^ val2;
+    case TK_BOR:  return val1 | val2;
+
+    case TK_EQ:  return val1 == val2;
+    case TK_NEQ: return val1 != val2;
+
+    case TK_AND: return val1 && val2;
+    case TK_OR:  return val1 || val2;
+
+    default:
+      printf("error: unsupported operator type=%d\n", tokens[op].type);
+      expr_error = true;
+      return 0;
+  }
 }
+
+
+
 uint32_t expr(char *e, bool *success) {
-    if (!make_token(e)) {
-        *success = false;
-        return 0;
-    }
+  if (e == NULL) {
+    *success = false;
+    return 0;
+  }
 
-    expr_error = false;
+  if (!make_token(e)) {
+    *success = false;
+    return 0;
+  }
 
-    /* Determine unary minus/dereference: if the previous token is a number,
-     * hex, register or a closing parenthesis, then '-' and '*' are binary;
-     * otherwise they are unary (negative / dereference).
-     */
-    if (tokens[0].type == '-')
-        tokens[0].type = TK_NEGATIVE;
+  if (nr_token == 0) {
+    *success = false;
+    return 0;
+  }
 
-    if (tokens[0].type == '*')
-        tokens[0].type = TK_DEREF;
+  expr_error = false;
+  uint32_t ret = eval(0, nr_token - 1);
 
-    for (int i = 1; i < nr_token; i++) {
-        if (tokens[i].type == '-') {
-            int prev = tokens[i - 1].type;
-            if (!(prev == TK_NUMBER || prev == TK_HEX || prev == TK_REG || prev == ')'))
-                tokens[i].type = TK_NEGATIVE;
-        }
+  if (expr_error) {
+    *success = false;
+    return 0;
+  }
 
-        if (tokens[i].type == '*') {
-            int prev = tokens[i - 1].type;
-            if (!(prev == TK_NUMBER || prev == TK_HEX || prev == TK_REG || prev == ')'))
-                tokens[i].type = TK_DEREF;
-        }
-    }
-
-    int ret = eval(0, nr_token - 1);
-    if (expr_error) {
-        *success = false;
-        return 0;
-    }
-
-    *success = true;
-    return (uint32_t)ret;
+  *success = true;
+  return ret;
 }
