@@ -2,6 +2,7 @@
 #include "monitor/monitor.h"
 #include "monitor/breakpoint.h"
 #include "monitor/watchpoint.h"
+#include <inttypes.h>
 
 /* The assembly code of instructions executed is only output to the screen
  * when the number of instructions executed is less than this value.
@@ -16,7 +17,7 @@ void exec_wrapper(bool);
 
 /* Simulate how the CPU works. */
 void cpu_exec(uint64_t n) {
-  printf("%llu\n",n);
+  printf("%" PRIu64 "\n", n);//print究竟要执行多久
   if (nemu_state == NEMU_END) {
     printf("Program execution has ended. To restart the program, exit NEMU and run again.\n");
     return;
