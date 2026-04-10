@@ -34,9 +34,15 @@ static int cmd_c(char *args) {
   cpu_exec(-1);
   return 0;
 }
+
+
+
 static int cmd_q(char *args) {
   return -1;
 }
+
+
+//单步执行指令，参数为要执行的指令数，默认为1
 static int cmd_si(char *args) {
   if (args == NULL) {
     cpu_exec(1);
@@ -54,51 +60,47 @@ static int cmd_si(char *args) {
   cpu_exec(n);
   return 0;
 }
+
+
+
+//打印寄存器信息
 static int cmd_info(char *args) {
   if (args == NULL || *args == '\0') {
     printf("args error in cmd_info\n");
     return 0;
   }
-
   while (*args == ' ') args++;   // 跳过前导空格
-
   switch (*args) {
     case 'r': {
       int i;
-
       for (i = 0; i < 8; i++) {
         printf("%s  0x%x\n", regsl[i], reg_l(i));
       }
-
       printf("eip  0x%x\n", cpu.eip);
-
       for (i = 0; i < 8; i++) {
         printf("%s  0x%x\n", regsw[i], reg_w(i));
       }
-
       for (i = 0; i < 8; i++) {
         printf("%s  0x%x\n", regsb[i], reg_b(i));
       }
-
       return 0;
     }
-
     case 'w':
       print_wp();
       return 0;
-
     default:
       printf("args error in cmd_info\n");
       return 0;
   }
 }
+
+
+//扫描内存，参数为要扫描的单元数和表达式，表达式求值后得到起始地址
 static int cmd_x(char *args) {
   if (args == NULL) {
     printf("Usage: x N EXPR\n");
     return 0;
   }
-
-  /* parse count */
   char *args_copy = strdup(args);
   if (!args_copy) return 0;
   char *count_str = strtok(args_copy, " ");
@@ -107,15 +109,12 @@ static int cmd_x(char *args) {
     printf("Usage: x N EXPR\n");
     return 0;
   }
-
   int n = atoi(count_str);
   if (n <= 0) {
     free(args_copy);
     printf("Invalid count '%s'\n", count_str);
     return 0;
   }
-
-  /* find expression start in original args to preserve spacing */
   char *space = strchr(args, ' ');
   if (space == NULL) {
     free(args_copy);
@@ -123,13 +122,12 @@ static int cmd_x(char *args) {
     return 0;
   }
   char *exprs = space + 1;
-  while (*exprs == ' ') exprs++; /* skip extra spaces */
+  while (*exprs == ' ') exprs++; 
   if (*exprs == '\0') {
     free(args_copy);
     printf("Usage: x N EXPR\n");
     return 0;
   }
-
   bool success = false;
   vaddr_t addr = expr(exprs, &success);
   if (!success) {
@@ -137,17 +135,18 @@ static int cmd_x(char *args) {
     printf("error in expr()\n");
     return 0;
   }
-
   printf("Memory:\n");
   for (int i = 0; i < n; i++) {
     uint32_t val = vaddr_read(addr, 4);
     printf("0x%08x: 0x%08x\n", addr, val);
     addr += 4;
   }
-
   free(args_copy);
   return 0;
 }
+
+
+
 static int cmd_p(char *args) {
     bool success;
     int res = expr(args, &success);
