@@ -165,36 +165,71 @@ static int cmd_p(char *args) {
 }
 
 
-
+//设置监视点，参数为表达式字符串，表达式求值后得到监视点的初始值
 static int cmd_w(char *args) {
   if (args == NULL) {
     printf("Usage: w EXPR\n");
     return 0;
   }
+
+  while (*args == ' ' || *args == '\t') args++;
+  if (*args == '\0') {
+    printf("Usage: w EXPR\n");
+    return 0;
+  }
+
   if (new_wp(args)) {
     return 0;
   }
+
   printf("Failed to set watchpoint for '%s'\n", args);
   return 0;
 }
+
+
+//删除监视点，参数为监视点编号
 static int cmd_d(char *args) {
   if (args == NULL) {
     printf("Usage: d N\n");
     return 0;
   }
 
-  int no = strtol(args, NULL, 10);
+  while (*args == ' ' || *args == '\t') args++;
+  if (*args == '\0') {
+    printf("Usage: d N\n");
+    return 0;
+  }
+
+  char *endptr = NULL;
+  long no = strtol(args, &endptr, 10);
+
+  if (endptr == args) {
+    printf("Invalid watchpoint number '%s'\n", args);
+    return 0;
+  }
+
+  while (*endptr == ' ' || *endptr == '\t') endptr++;
+  if (*endptr != '\0') {
+    printf("Invalid watchpoint number '%s'\n", args);
+    return 0;
+  }
+
   if (no < 0) {
     printf("Invalid watchpoint number '%s'\n", args);
     return 0;
   }
-  if (free_wp(no)) {
-    printf("Success delete watchpoint %d\n", no);
+
+  if (free_wp((int)no)) {
+    printf("Success delete watchpoint %ld\n", no);
   } else {
-    printf("error: no watchpoint %d\n", no);
+    printf("error: no watchpoint %ld\n", no);
   }
+
   return 0;
 }
+
+
+
 static int cmd_b(char *args) {
   if (!args) { printf("Usage: b ADDR\n"); return 0; }
   vaddr_t addr = strtoul(args, NULL, 0);
