@@ -106,41 +106,29 @@ static inline void parse_args(int argc, char *argv[]) {
 }
 
 int init_monitor(int argc, char *argv[]) {
-  /* Perform some global initialization. */
-
-  /* Parse arguments. */
+  /* 解析命令行参数，设置 `img_file` / `log_file` / `is_batch_mode` */
   parse_args(argc, argv);
-
-  /* Open the log file. */
+  /* 打开并初始化日志（仅在 DEBUG 下且指定了 log_file 时生效） */
   init_log();
-
-  /* Test the implementation of the `CPU_state' structure. */
+  /* 测试 `CPU_state` 结构的实现是否正确 */
   reg_test();
-
 #ifdef DIFF_TEST
-  /* Fork a child process to perform differential testing. */
+  /* 初始化差分测试所需的子进程/连接 */
   init_difftest();
 #endif
-
-  /* Load the image to memory. */
+  /* 将程序镜像加载到仿真内存（若未指定则使用内建默认镜像） */
   load_img();
-
-  /* Initialize this virtual computer system. */
+  /* 初始化虚拟机寄存器并设置起始指令地址 */
   restart();
-
-  /* Compile the regular expressions. */
+  /* 编译并准备命令行解析中使用的正则表达式 */
   init_regex();
-
-  /* Initialize the watchpoint pool. */
+  /* 初始化监视点与断点池 */
   init_wp_pool();
-  /* Initialize breakpoint pool. */
   init_bp_pool();
-
-  /* Initialize devices. */
+  /* 初始化仿真设备（I/O、定时器等） */
   init_device();
-
-  /* Display welcome message. */
+  /* 打印欢迎信息，提示用户可用命令 */
   welcome();
-
+  /* 返回是否为批处理模式，供上层控制流程使用 */
   return is_batch_mode;
 }
