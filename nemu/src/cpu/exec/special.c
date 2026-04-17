@@ -5,6 +5,16 @@ make_EHelper(nop) {
   print_asm("nop");
 }
 
+make_EHelper(cld) {
+  // DF is not modeled in this simplified CPU state.
+  print_asm("cld");
+}
+
+make_EHelper(std) {
+  // DF is not modeled in this simplified CPU state.
+  print_asm("std");
+}
+
 make_EHelper(inv) {
   /* invalid opcode */
 
