@@ -45,7 +45,15 @@ uint32_t pio_read(ioaddr_t, int);
 void pio_write(ioaddr_t, int, uint32_t);
 
 make_EHelper(in) {
-  TODO();
+  rtlreg_t port = id_src->val;
+  int width = id_dest->width;
+
+  // 先从端口读取数据
+  rtlreg_t data = pio_read(port, width);
+
+  // 再写入目标操作数
+  rtl_li(&t0, data);
+  operand_write(id_dest, &t0);
 
   print_asm_template2(in);
 
@@ -55,7 +63,12 @@ make_EHelper(in) {
 }
 
 make_EHelper(out) {
-  TODO();
+  rtlreg_t port = id_dest->val;
+  rtlreg_t data = id_src->val;
+  int width = id_src->width;
+
+  // 向端口写数据
+  pio_write(port, width, data);
 
   print_asm_template2(out);
 
