@@ -117,3 +117,20 @@ make_EHelper(not) {
 
   print_asm_template1(not);
 }
+
+make_EHelper(rol) {
+  rtlreg_t result;
+  rtlreg_t cnt = id_src->val & 0x1f;
+
+  if (cnt == 0) {
+    print_asm_template2(rol);
+    return;
+  }
+
+  rtl_shl(&result, &id_dest->val, &id_src->val);
+  rtl_shr(&t0, &id_dest->val, &(rtlreg_t){32 - cnt});
+  rtl_or(&result, &result, &t0);
+  operand_write(id_dest, &result);
+
+  print_asm_template2(rol);
+}

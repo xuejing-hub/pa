@@ -1,4 +1,5 @@
 #include "cpu/exec.h"
+#include "cpu/reg.h"
 
 void diff_test_skip_qemu();
 void diff_test_skip_nemu();
@@ -36,7 +37,12 @@ make_EHelper(int) {
 }
 
 make_EHelper(iret) {
-  TODO();
+  rtl_pop(&t0);
+  decoding.jmp_eip = t0;
+  decoding.is_jmp = 1;
+
+  rtl_pop(&t1);
+  rtl_pop(&cpu.eflags.val);
 
   print_asm("iret");
 }
