@@ -52,6 +52,13 @@ make_EHelper(or) {
 
 make_EHelper(sar) {
   rtlreg_t result;
+  rtlreg_t cnt = id_src->val & 0x1f;
+
+  if (cnt == 0) {
+    print_asm_template2(sar);
+    return;
+  }
+
   rtl_sext(&result, &id_dest->val, id_dest->width);
   rtl_sar(&result, &result, &id_src->val);
   operand_write(id_dest, &result);
@@ -62,6 +69,12 @@ make_EHelper(sar) {
 
 make_EHelper(shl) {
   rtlreg_t result;
+  rtlreg_t cnt = id_src->val & 0x1f;
+
+  if (cnt == 0) {
+    print_asm_template2(shl);
+    return;
+  }
 
   rtl_shl(&result, &id_dest->val, &id_src->val);
   operand_write(id_dest, &result);
@@ -72,6 +85,12 @@ make_EHelper(shl) {
 
 make_EHelper(shr) {
   rtlreg_t result;
+  rtlreg_t cnt = id_src->val & 0x1f;
+
+  if (cnt == 0) {
+    print_asm_template2(shr);
+    return;
+  }
 
   rtl_shr(&result, &id_dest->val, &id_src->val);
   operand_write(id_dest, &result);
