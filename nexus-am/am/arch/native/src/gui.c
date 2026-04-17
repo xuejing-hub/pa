@@ -47,18 +47,11 @@ static inline int min(int x, int y) {
 }
 
 void _draw_rect(const uint32_t *pixels, int x, int y, int w, int h) {
-  if (x >= _screen.width || y >= _screen.height || w <= 0 || h <= 0) return;
-
-  int draw_w = w;
-  if (x + draw_w > _screen.width) {
-    draw_w = _screen.width - x;
-  }
-
-  int line_size = draw_w * sizeof(uint32_t);
-
-  for (int row = 0; row < h; row++) {
-    if (y + row >= _screen.height) break;
-    memcpy(fb + (y + row) * W + x, pixels + row * w, line_size);
+  int temp = (w > _screen.width - x) ? _screen.width - x : w;
+  int cp_bytes = sizeof(uint32_t) * temp;
+  for (int j = 0; j < h && y + j < _screen.height; j++) {
+    memcpy(&fb[(y + j) * _screen.width + x], pixels, cp_bytes);
+    pixels += w;
   }
 }
 
