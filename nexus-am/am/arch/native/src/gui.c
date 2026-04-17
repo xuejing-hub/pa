@@ -1,5 +1,6 @@
 #include <am.h>
 #include <SDL2/SDL.h>
+#include "ioe-gfx.h"
 
 #define W 400
 #define H 300
@@ -47,11 +48,7 @@ static inline int min(int x, int y) {
 }
 
 void _draw_rect(const uint32_t *pixels, int x, int y, int w, int h) {
-  uint32_t *dest = fb + y * _screen.width + x;
-  for (int i = 0; i < h; i++) {
-    memcpy(dest, pixels + i * w, w * sizeof(uint32_t));
-    dest += _screen.width;
-  }
+  _am_draw_rect_clipped(fb, _screen.width, _screen.height, pixels, x, y, w, h);
 }
 
 void _draw_sync() {

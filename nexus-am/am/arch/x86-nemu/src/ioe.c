@@ -1,5 +1,6 @@
 #include <am.h>
 #include <x86.h>
+#include "ioe-gfx.h"
 
 #define RTC_PORT 0x48   // Note that this is not standard
 static unsigned long boot_time;
@@ -21,15 +22,8 @@ _Screen _screen = {
   .height = 300,
 };
 
-extern void* memcpy(void *, const void *, int);
-
 void _draw_rect(const uint32_t *pixels, int x, int y, int w, int h) {
-  int i, j;
-  for (j = 0; j < h; j++) {
-    for (i = 0; i < w; i++) {
-      fb[(y + j) * _screen.width + (x + i)] = pixels[j * w + i];
-    }
-  }
+  _am_draw_rect_clipped(fb, _screen.width, _screen.height, pixels, x, y, w, h);
 }
 
 void _draw_sync() {
@@ -37,7 +31,7 @@ void _draw_sync() {
 
 int _read_key() {
   uint8_t status = inb(0x64);
-  if (status) {
+  if (status & 0x1) {
     int key = inl(0x60);
     return key;
   }
