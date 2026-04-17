@@ -149,7 +149,26 @@ void difftest_step(uint32_t eip) {
 
   // TODO: Check the registers state with QEMU.
   // Set `diff` as `true` if they are not the same.
-  TODO();
+  // Compare all GPRs and EIP.
+  if (cpu.eax != r.eax || cpu.ecx != r.ecx || cpu.edx != r.edx || cpu.ebx != r.ebx ||
+      cpu.esp != r.esp || cpu.ebp != r.ebp || cpu.esi != r.esi || cpu.edi != r.edi ||
+      cpu.eip != r.eip) {
+    diff = true;
+  }
+
+  // Compare only modeled EFLAGS bits to avoid false positives on unmodeled bits.
+  uint32_t eflags_mask = (1u << 0) | (1u << 6) | (1u << 7) | (1u << 9) | (1u << 11);
+  if ((cpu.eflags.val & eflags_mask) != (r.eflags & eflags_mask)) {
+    diff = true;
+  }
+
+  if (diff) {
+    printf("Difftest mismatch at eip = 0x%08x\n", eip);
+    printf("NEMU: eax=%08x ecx=%08x edx=%08x ebx=%08x esp=%08x ebp=%08x esi=%08x edi=%08x eip=%08x eflags=%08x\n",
+        cpu.eax, cpu.ecx, cpu.edx, cpu.ebx, cpu.esp, cpu.ebp, cpu.esi, cpu.edi, cpu.eip, cpu.eflags.val);
+    printf("QEMU: eax=%08x ecx=%08x edx=%08x ebx=%08x esp=%08x ebp=%08x esi=%08x edi=%08x eip=%08x eflags=%08x\n",
+        r.eax, r.ecx, r.edx, r.ebx, r.esp, r.ebp, r.esi, r.edi, r.eip, r.eflags);
+  }
 
   if (diff) {
     nemu_state = NEMU_END;
