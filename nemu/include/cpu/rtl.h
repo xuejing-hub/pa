@@ -126,25 +126,26 @@ make_rtl_setget_eflags(SF)
 
 static inline void rtl_mv(rtlreg_t* dest, const rtlreg_t *src1) {
   // dest <- src1
-  *dest = *src1;
+  rtl_or(dest, src1, &tzero);
 }
 
 static inline void rtl_not(rtlreg_t* dest) {
   // dest <- ~dest
-  *dest = ~(*dest);
+  rtl_xori(dest, dest, 0xffffffff);
 }
 
 static inline void rtl_sext(rtlreg_t* dest, const rtlreg_t* src1, int width) {
   // dest <- signext(src1[(width * 8 - 1) .. 0])
-  int sign_bit = width * 8 - 1;
-  int sign = ((*src1) >> sign_bit) & 0x1;
-  uint32_t mask = (1u << (width * 8)) - 1;
-  uint32_t val = (*src1) & mask;
-  if (sign) {
-    *dest = val | (~mask);
-  } else {
-    *dest = val;
+  if (width == 4) {
+    rtl_mv(dest, src1);
+    return;
   }
+
+  assert(width == 1 || width == 2);
+
+  int shift = (4 - width) * 8;
+  rtl_shli(dest, src1, shift);
+  rtl_sari(dest, dest, shift);
 }
 
 

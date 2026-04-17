@@ -1,7 +1,25 @@
 #include "cpu/exec.h"
 
 make_EHelper(add) {
-  TODO();
+  rtlreg_t dest, src, result;
+  rtlreg_t carry, tmp1, tmp2;
+
+  dest = id_dest->val;
+  src = id_src->val;
+
+  rtl_add(&result, &dest, &src);
+  operand_write(id_dest, &result);
+
+  rtl_update_ZFSF(&result, id_dest->width);
+
+  rtl_sltu(&carry, &result, &dest);
+  rtl_set_CF(&carry);
+
+  rtl_xor(&tmp1, &src, &result);
+  rtl_xor(&tmp2, &dest, &result);
+  rtl_and(&tmp1, &tmp1, &tmp2);
+  rtl_msb(&tmp1, &tmp1, id_dest->width);
+  rtl_set_OF(&tmp1);
 
   print_asm_template2(add);
 }
@@ -30,25 +48,76 @@ make_EHelper(sub) {
 }
 
 make_EHelper(cmp) {
-  TODO();
+  rtlreg_t dest, src, result;
+
+  dest = id_dest->val;
+  src = id_src->val;
+
+  rtl_sub(&result, &dest, &src);
+
+  rtl_update_ZFSF(&result, id_dest->width);
+
+  rtl_sltu(&t0, &dest, &src);
+  rtl_set_CF(&t0);
+
+  rtl_xor(&t0, &dest, &src);
+  rtl_xor(&t1, &dest, &result);
+  rtl_and(&t0, &t0, &t1);
+  rtl_msb(&t0, &t0, id_dest->width);
+  rtl_set_OF(&t0);
 
   print_asm_template2(cmp);
 }
 
+
 make_EHelper(inc) {
-  TODO();
+  rtlreg_t src, result, of;
+
+  src = id_dest->val;
+
+  rtl_addi(&result, &src, 1);
+  operand_write(id_dest, &result);
+
+  rtl_update_ZFSF(&result, id_dest->width);
+
+  rtl_eqi(&of, &result, 1u << (id_dest->width * 8 - 1));
+  rtl_set_OF(&of);
 
   print_asm_template1(inc);
 }
 
 make_EHelper(dec) {
-  TODO();
+  rtlreg_t src, result, of;
+
+  src = id_dest->val;
+
+  rtl_subi(&result, &src, 1);
+  operand_write(id_dest, &result);
+
+  rtl_update_ZFSF(&result, id_dest->width);
+
+  rtl_eqi(&of, &result, (1u << (id_dest->width * 8 - 1)) - 1);
+  rtl_set_OF(&of);
 
   print_asm_template1(dec);
 }
 
 make_EHelper(neg) {
-  TODO();
+  rtlreg_t src, result;
+  rtlreg_t zero = 0, cf, of;
+
+  src = id_dest->val;
+
+  rtl_sub(&result, &zero, &src);
+  operand_write(id_dest, &result);
+
+  rtl_update_ZFSF(&result, id_dest->width);
+
+  rtl_neq0(&cf, &src);
+  rtl_set_CF(&cf);
+
+  rtl_eqi(&of, &src, 1u << (id_dest->width * 8 - 1));
+  rtl_set_OF(&of);
 
   print_asm_template1(neg);
 }
