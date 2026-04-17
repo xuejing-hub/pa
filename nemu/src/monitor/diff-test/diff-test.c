@@ -136,7 +136,6 @@ void difftest_step(uint32_t eip) {
   }
 
   if (is_skip_qemu) {
-    // to skip the checking of an instruction, just copy the reg state to qemu
     gdb_getregs(&r);
     regcpy_from_nemu(r);
     gdb_setregs(&r);
@@ -147,30 +146,39 @@ void difftest_step(uint32_t eip) {
   gdb_si();
   gdb_getregs(&r);
 
-  // TODO: Check the registers state with QEMU.
-  // Set `diff` as `true` if they are not the same.
-  // Compare all GPRs and EIP.
-  if (cpu.eax != r.eax || cpu.ecx != r.ecx || cpu.edx != r.edx || cpu.ebx != r.ebx ||
-      cpu.esp != r.esp || cpu.ebp != r.ebp || cpu.esi != r.esi || cpu.edi != r.edi ||
-      cpu.eip != r.eip) {
-    diff = true;
+#define CHECK_REG(name)                                                     \
+  do {                                                                      \
+    if (r.name != cpu.name) {                                               \
+      diff = true;                                                          \
+      printf("Diff: %-3s QEMU: 0x%08x\n", #name, r.name);                   \
+      printf("      %-3s NEMU: 0x%08x\n", #name, cpu.name);                 \
+    }                                                                       \
+  } while (0)
+
+  CHECK_REG(eip);
+  CHECK_REG(eax);
+  CHECK_REG(ecx);
+  CHECK_REG(edx);
+  CHECK_REG(ebx);
+  CHECK_REG(esp);
+  CHECK_REG(ebp);
+  CHECK_REG(esi);
+  CHECK_REG(edi);
+
+#undef CHECK_REG
+
+  if (!diff) {
+    return;
   }
 
-  // Compare only the stable flags we rely on broadly across implemented instructions.
-  uint32_t eflags_mask = (1u << 6) | (1u << 7);
-  if ((cpu.eflags.val & eflags_mask) != (r.eflags & eflags_mask)) {
-    diff = true;
-  }
+  printf("EIP    in NEMU: 0x%08x\n", cpu.eip);
+  printf("ZF     in NEMU: %d\n", cpu.eflags.ZF);
+  printf("SF     in NEMU: %d\n", cpu.eflags.SF);
+  printf("OF     in NEMU: %d\n", cpu.eflags.OF);
+  printf("CF     in NEMU: %d\n", cpu.eflags.CF);
+  printf("IF     in NEMU: %d\n", cpu.eflags.IF);
+  printf("EFLAGS in NEMU: 0x%08x\n", cpu.eflags.val);
+  printf("EFLAGS in QEMU: 0x%08x\n", r.eflags);
 
-  if (diff) {
-    printf("Difftest mismatch at eip = 0x%08x\n", eip);
-    printf("NEMU: eax=%08x ecx=%08x edx=%08x ebx=%08x esp=%08x ebp=%08x esi=%08x edi=%08x eip=%08x eflags=%08x\n",
-        cpu.eax, cpu.ecx, cpu.edx, cpu.ebx, cpu.esp, cpu.ebp, cpu.esi, cpu.edi, cpu.eip, cpu.eflags.val);
-    printf("QEMU: eax=%08x ecx=%08x edx=%08x ebx=%08x esp=%08x ebp=%08x esi=%08x edi=%08x eip=%08x eflags=%08x\n",
-        r.eax, r.ecx, r.edx, r.ebx, r.esp, r.ebp, r.esi, r.edi, r.eip, r.eflags);
-  }
-
-  if (diff) {
-    nemu_state = NEMU_END;
-  }
+  nemu_state = NEMU_END;
 }
