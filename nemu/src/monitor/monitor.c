@@ -85,7 +85,7 @@ static inline void restart() {
   cpu.eip = ENTRY_START;
 
   uint32_t init_eflags = 0x00000002;
-  memcpy(&cpu.eflags, &init_eflags, sizeof(cpu.eflags));
+  cpu.eflags.val = init_eflags;
 
 #ifdef DIFF_TEST
   init_qemu_reg();

@@ -5,8 +5,31 @@
 #include "nemu.h"
 
 #include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
+// Stub readline if not available
+#ifdef USE_READLINE
 #include <readline/readline.h>
 #include <readline/history.h>
+#endif
+
+#ifndef USE_READLINE
+char* readline(const char *prompt) {
+  static char buf[256];
+  if (prompt) printf("%s", prompt);
+  fflush(stdout);
+  if (fgets(buf, sizeof(buf), stdin) == NULL) return NULL;
+  // remove newline
+  size_t len = strlen(buf);
+  if (len > 0 && buf[len-1] == '\n') buf[len-1] = '\0';
+  return buf;
+}
+
+void add_history(const char *line) {
+  // stub
+}
+#endif
 
 void cpu_exec(uint64_t);
 
