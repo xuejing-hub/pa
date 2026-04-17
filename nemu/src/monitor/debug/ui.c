@@ -23,7 +23,10 @@ char* readline(const char *prompt) {
   // remove newline
   size_t len = strlen(buf);
   if (len > 0 && buf[len-1] == '\n') buf[len-1] = '\0';
-  return buf;
+  char *line = malloc(strlen(buf) + 1);
+  if (line == NULL) return NULL;
+  strcpy(line, buf);
+  return line;
 }
 
 void add_history(const char *line) {
@@ -397,6 +400,9 @@ void ui_mainloop(int is_batch_mode) {
 
   while (1) {
     char *str = rl_gets();
+    if (str == NULL) {
+      return;
+    }
     char *str_end = str + strlen(str);
 
     /* extract the first token as the command */
