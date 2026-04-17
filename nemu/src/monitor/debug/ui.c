@@ -17,9 +17,17 @@
 #ifndef USE_READLINE
 char* readline(const char *prompt) {
   static char buf[256];
+  static FILE *tty_in = NULL;
   if (prompt) printf("%s", prompt);
   fflush(stdout);
-  if (fgets(buf, sizeof(buf), stdin) == NULL) return NULL;
+  if (fgets(buf, sizeof(buf), stdin) == NULL) {
+    if (tty_in == NULL) {
+      tty_in = fopen("/dev/tty", "r");
+    }
+    if (tty_in == NULL || fgets(buf, sizeof(buf), tty_in) == NULL) {
+      return NULL;
+    }
+  }
   // remove newline
   size_t len = strlen(buf);
   if (len > 0 && buf[len-1] == '\n') buf[len-1] = '\0';
