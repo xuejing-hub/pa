@@ -80,9 +80,12 @@ static inline void load_img() {//读入带有客户程序的镜像文件.
 #endif
 }
 
-static inline void restart() {//模拟了"计算机启动"的功能,进行一些和"计算机启动"相关的初始化工作
+static inline void restart() {
   /* Set the initial instruction pointer. */
   cpu.eip = ENTRY_START;
+
+  uint32_t init_eflags = 0x00000002;
+  memcpy(&cpu.eflags, &init_eflags, sizeof(cpu.eflags));
 
 #ifdef DIFF_TEST
   init_qemu_reg();
