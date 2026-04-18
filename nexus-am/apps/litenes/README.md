@@ -6,10 +6,10 @@ Nintendo Entertainment System模拟器。故意做了一些错误的实现以提
 
 操作方式:
 
-* T — SELECT
-* Y — START
-* G — A键
-* H — B键
-* W/S/A/D — UP/DOWN/LEFT/RIGHT
+* SELECT: T 或 TAB
+* START: Y 或 回车
+* A键: G 或 J 或 空格
+* B键: H 或 K 或 Ctrl
+* 方向: W/S/A/D 或 ↑/↓/←/→
 
 需要正确的IOE (绘图、定时)。
