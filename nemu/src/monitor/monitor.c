@@ -106,41 +106,32 @@ static inline void parse_args(int argc, char *argv[]) {
 }
 
 int init_monitor(int argc, char *argv[]) {
-  /* Perform some global initialization. */
-
-  /* Parse arguments. */
+  // 执行一些全局初始化操作
+  // 解析命令行参数
   parse_args(argc, argv);
-
-  /* Open the log file. */
+  // 打开日志文件
   init_log();
-
-  /* Test the implementation of the `CPU_state' structure. */
+  // 测试 CPU_state 寄存器结构体的实现是否正确
   reg_test();
 
 #ifdef DIFF_TEST
-  /* Fork a child process to perform differential testing. */
+  // 创建子进程以执行差分测试
   init_difftest();
 #endif
 
-  /* Load the image to memory. */
+  // 将程序镜像加载到内存中
   load_img();
-
-  /* Initialize this virtual computer system. */
+  // 初始化虚拟计算机系统状态
   restart();
-
-  /* Compile the regular expressions. */
+  // 编译正则表达式（用于表达式求值）
   init_regex();
-
-  /* Initialize the watchpoint pool. */
+  // 初始化监视点池
   init_wp_pool();
-  /* Initialize breakpoint pool. */
+  // 初始化断点池
   init_bp_pool();
-
-  /* Initialize devices. */
+  // 初始化外设
   init_device();
-
-  /* Display welcome message. */
+  // 输出欢迎信息
   welcome();
-
   return is_batch_mode;
 }

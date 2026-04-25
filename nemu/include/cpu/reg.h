@@ -17,21 +17,20 @@ enum { R_AL, R_CL, R_DL, R_BL, R_AH, R_CH, R_DH, R_BH };
 typedef struct {
   union{
     union{
-    uint32_t _32;
-    uint16_t _16;
-    uint8_t _8[2];
-  } gpr[8];
-  /* Do NOT change the order of the GPRs' definitions. */
+      uint32_t _32;      // 32位寄存器（如 EAX）
+      uint16_t _16;      // 低16位寄存器（如 AX）
+      uint8_t _8[2];     // 8位寄存器：_8[0]=低8位(AL)，_8[1]=高8位(AH)
+    } gpr[8];            // 通用寄存器组，共8个
 
-  /* In NEMU, rtlreg_t is exactly uint32_t. This makes RTL instructions
-   * in PA2 able to directly access these registers.
-   */
+    // 不要改变 gpr 的顺序（必须对应 eax, ecx, edx, ebx, esp, ebp, esi, edi）
+
+    // 在 NEMU 中，rtlreg_t 实际等价于 uint32_t，
+    // 这样 RTL 指令可以直接访问这些寄存器
     struct{
-      rtlreg_t eax, ecx, edx, ebx, esp, ebp, esi, edi;
+      rtlreg_t eax, ecx, edx, ebx, esp, ebp, esi, edi;  // 按名称访问寄存器
     };
   };
-  vaddr_t eip;
-
+  vaddr_t eip;  // 指令指针寄存器，存储当前执行指令的地址
 } CPU_state;
 
 extern CPU_state cpu;
