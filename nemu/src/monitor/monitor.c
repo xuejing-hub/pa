@@ -106,29 +106,32 @@ static inline void parse_args(int argc, char *argv[]) {
 }
 
 int init_monitor(int argc, char *argv[]) {
-  /* 解析命令行参数，设置 `img_file` / `log_file` / `is_batch_mode` */
+  // 执行一些全局初始化操作
+  // 解析命令行参数
   parse_args(argc, argv);
-  /* 打开并初始化日志（仅在 DEBUG 下且指定了 log_file 时生效） */
+  // 打开日志文件
   init_log();
-  /* 测试 `CPU_state` 结构的实现是否正确 */
+  // 测试 CPU_state 寄存器结构体的实现是否正确
   reg_test();
+
 #ifdef DIFF_TEST
-  /* 初始化差分测试所需的子进程/连接 */
+  // 创建子进程以执行差分测试
   init_difftest();
 #endif
-  /* 将程序镜像加载到仿真内存（若未指定则使用内建默认镜像） */
+
+  // 将程序镜像加载到内存中
   load_img();
-  /* 初始化虚拟机寄存器并设置起始指令地址 */
+  // 初始化虚拟计算机系统状态
   restart();
-  /* 编译并准备命令行解析中使用的正则表达式 */
+  // 编译正则表达式（用于表达式求值）
   init_regex();
-  /* 初始化监视点与断点池 */
+  // 初始化监视点池
   init_wp_pool();
+  // 初始化断点池
   init_bp_pool();
-  /* 初始化仿真设备（I/O、定时器等） */
+  // 初始化外设
   init_device();
-  /* 打印欢迎信息，提示用户可用命令 */
+  // 输出欢迎信息
   welcome();
-  /* 返回是否为批处理模式，供上层控制流程使用 */
   return is_batch_mode;
 }
